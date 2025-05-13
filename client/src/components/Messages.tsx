@@ -1,24 +1,52 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
+import { Box, Typography } from "@mui/material";
+import { useAppSelector as useSelector } from "../hooks/redux";
+import Message from "./Message";
+import LoadingMessage from "./LoadingMessage";
 
-interface Message {
-  text: string;
-  sender: "user" | "bot";
-}
+const Messages: React.FC = () => {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-interface MessagesProps {
-  messages: Message[];
-  isLoading: boolean;
-}
+  const messages = useSelector(
+    (state) =>
+      state.conversations.conversations.find(
+        (conv) => conv.id === state.conversations.currentId
+      )?.messages || []
+  );
 
-const Messages: React.FC<MessagesProps> = ({ messages, isLoading }) => (
-  <div className="messages">
-    {messages.map((msg, i) => (
-      <div key={i} className={`message ${msg.sender}`}>
-        {msg.text}
-      </div>
-    ))}
-    {isLoading && <div className="message bot">Thinking...</div>}
-  </div>
-);
+  const { isLoading } = useSelector((state) => state.conversations);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      {messages.length === 0 && (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100%",
+          }}
+        >
+          <Typography variant="body1" color="text.secondary">
+            Start a conversation by typing a message below
+          </Typography>
+        </Box>
+      )}
+
+      {messages.map(({ content, role }, i) => (
+        <Message key={i} content={content} role={role} />
+      ))}
+
+      {isLoading && <LoadingMessage />}
+
+      <div ref={messagesEndRef} />
+    </Box>
+  );
+};
 
 export default Messages;

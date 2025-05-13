@@ -1,0 +1,66 @@
+datasource db {
+  provider = "postgresql" // Change this to your database provider
+  url      = env("DATABASE_URL") // Set your database URL in .env
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+model Prompt {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  content     String
+  model       String?
+  temperature Float    @default(0.7)
+  maxTokens   Int      @default(2000)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isSystem    Boolean  @default(false)
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model User {
+  id             Int            @id @default(autoincrement())
+  username       String         @unique
+  hashedPassword String
+  facebookId     String?        @unique
+  googleId       String?        @unique
+  githubId       String?        @unique
+  displayName    String?
+  image          String?
+  createdAt      DateTime       @default(now())
+  messages       Message[]
+  prompts        Prompt[] // Add relation to prompts
+  Conversation   Conversation[]
+}
+
+model Message {
+  id             Int           @id @default(autoincrement())
+  content        String
+  role           MessageSender @default(user)
+  createdAt      DateTime      @default(now())
+  userId         Int?
+  user           User?         @relation(fields: [userId], references: [id])
+  conversationId Int
+  conversation   Conversation  @relation(fields: [conversationId], references: [id])
+}
+
+model Conversation {
+  id        Int       @id @default(autoincrement())
+  title     String
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  userId    Int?
+  user      User?     @relation(fields: [userId], references: [id])
+}
+
+enum MessageSender {
+  user
+  assistant
+  system
+  tool
+}
