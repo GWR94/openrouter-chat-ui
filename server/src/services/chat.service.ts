@@ -26,7 +26,7 @@ export const createConversationWithMessage = async (
       },
     });
 
-    // Return both with the message included in conversation
+    // Return the created conversation and message
     return tx.conversation.findUnique({
       where: { id: conversation.id },
       include: {
@@ -43,13 +43,7 @@ export interface Message {
   userId?: number;
 }
 
-export const sendMessage = async ({
-  model,
-  context,
-}: {
-  model: string;
-  context: Message[];
-}) => {
+export const sendMessage = async ({ model, context }: ChatRequest) => {
   const response = await axios.post(
     "https://openrouter.ai/api/v1/chat/completions",
     { model, messages: context },
@@ -63,11 +57,11 @@ export const sendMessage = async ({
   return response.data.choices[0].message.content;
 };
 
-export const createTitle = async ({
-  model,
-  content,
-  userId,
-}: ChatRequest): Promise<string> => {
+export const createTitle = async (
+  model: string,
+  content: string,
+  userId?: number
+): Promise<string> => {
   const systemMessage: Message = {
     id: Date.now(),
     role: "system",

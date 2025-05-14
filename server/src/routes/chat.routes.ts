@@ -1,14 +1,33 @@
 import { Router } from "express";
 import {
+  createMessage,
+  getMessages,
+  deleteMessage,
+  getConversations,
+  deleteConversation,
+  createPrompt,
+  deletePrompt,
+  updatePrompt,
+  getPrompts,
   createConversation,
-  sendChatMessage,
 } from "../controllers/chat.controller";
 
 const router = Router();
 
-// Define the route for handling chat requests
-router.post("/", sendChatMessage);
-router.post("/:id", createConversation);
-router.patch("/:id");
+// MESSAGES
+router.post("/message", createMessage);
+router.get("/messages/:id", getMessages);
+router.delete("/message/:id", deleteMessage);
+
+// CONVERSATIONS
+router.post("/conversation", createConversation);
+router.delete("/conversation/:id", deleteConversation);
+router.get("/conversations", getConversations);
+
+// PROMPTS
+router.post("/prompt", createPrompt);
+router.patch("/prompt", updatePrompt);
+router.delete("/prompt/:id", deletePrompt);
+router.get("/prompts", getPrompts);
 
 export default router;

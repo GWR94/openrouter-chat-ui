@@ -26,7 +26,7 @@ model Prompt {
 model User {
   id             Int            @id @default(autoincrement())
   username       String         @unique
-  hashedPassword String
+  hashedPassword String?
   facebookId     String?        @unique
   googleId       String?        @unique
   githubId       String?        @unique

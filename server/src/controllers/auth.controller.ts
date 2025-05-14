@@ -96,7 +96,8 @@ export const verifyUser = async (req: Request, res: Response) => {
     const { accessToken } = req.cookies;
     if (!accessToken) {
       res.status(401).json({
-        message: "Unauthorized - No Access Token",
+        success: false,
+        error: "Unauthorized - No Access Token",
       });
       return;
     }
@@ -110,15 +111,23 @@ export const verifyUser = async (req: Request, res: Response) => {
 
     if (!user) {
       res.status(401).json({
+        success: false,
         message: "Unauthorized - User not found",
       });
       return;
     }
+
     const { hashedPassword, ...safeUser } = user;
-    res.status(200).json({ user: safeUser });
+    res.status(200).json({
+      success: true,
+      data: safeUser,
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to verify user", error: err });
+    res.status(500).json({
+      success: false,
+      error: "Failed to verify user",
+    });
   }
 };
 
@@ -135,10 +144,16 @@ export const getUser = async (req: Request, res: Response) => {
   try {
     const user = await findUser({ username });
     console.log(user);
-    res.json(user);
+    res.json({
+      success: true,
+      data: user,
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to get user", error: err });
+    res.status(500).json({
+      success: false,
+      error: "Failed to get user",
+    });
   }
 };
 
@@ -162,13 +177,16 @@ export const loginUser = async (req: Request, res: Response) => {
     }
     if (!user.hashedPassword) {
       res.status(422).json({
-        message: "Wrong authentication method. Please use OAuth.",
+        error: "Wrong authentication method. Please use OAuth.",
+        success: false,
       });
       return;
     }
     const isPasswordValid = await bcrypt.compare(password, user.hashedPassword);
     if (!isPasswordValid) {
-      res.status(401).json({ message: "Invalid username or password" });
+      res
+        .status(401)
+        .json({ success: false, error: "Invalid username or password" });
       return;
     }
     res.clearCookie("accessToken");
@@ -182,10 +200,10 @@ export const loginUser = async (req: Request, res: Response) => {
 
     res.cookie("accessToken", accessToken, accessTokenConfig);
     res.cookie("refreshToken", refreshToken, refreshTokenConfig);
-    res.json({ message: "Login successful" });
+    res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to log in", error: err });
+    res.status(500).json({ error: "Failed to log in" });
     return;
   }
 };
@@ -199,7 +217,9 @@ export const loginUser = async (req: Request, res: Response) => {
 export const logoutUser = (req: Request, res: Response) => {
   res.clearCookie("accessToken");
   res.clearCookie("refreshToken");
-  res.json({ message: "Logged out successfully" });
+  res.json({
+    success: true,
+  });
 };
 
 /**
@@ -214,7 +234,8 @@ export const setOAuthTokensThenRedirect = (req: Request, res: Response) => {
   try {
     if (!user) {
       res.status(400).json({
-        message: "User not found",
+        success: false,
+        error: "User not found",
       });
       return;
     }
@@ -225,12 +246,11 @@ export const setOAuthTokensThenRedirect = (req: Request, res: Response) => {
     res.cookie("refreshToken", refreshToken, refreshTokenConfig);
     res.redirect(process.env.FRONT_END as string);
     return;
-  } catch (err: unknown) {
-    const error = err as Error;
-    console.log(error.message);
+  } catch (err) {
+    console.log(err);
     res.status(500).json({
-      message: "Couldn't complete OAuth",
-      error: error.message,
+      success: false,
+      error: "Couldn't complete OAuth",
     });
   }
 };
@@ -245,7 +265,9 @@ export const setOAuthTokensThenRedirect = (req: Request, res: Response) => {
 export const refreshToken = async (req: Request, res: Response) => {
   const { refreshToken } = req.cookies;
   if (!refreshToken) {
-    res.status(401).json({ message: "Unauthorized - No Refresh Token" });
+    res
+      .status(401)
+      .json({ error: "Unauthorized - No Refresh Token", success: false });
     return;
   }
   const decoded = jwt.verify(
@@ -257,16 +279,18 @@ export const refreshToken = async (req: Request, res: Response) => {
     const user = await findUser(decoded);
 
     if (!user) {
-      res.status(401).json({ message: "Unauthorized - User not found" });
+      res
+        .status(401)
+        .json({ success: false, error: "Unauthorized - User not found" });
       return;
     }
 
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
     res.cookie("accessToken", accessToken, accessTokenConfig);
     res.cookie("refreshToken", newRefreshToken, refreshTokenConfig);
-    res.json({ message: "Tokens refreshed successfully" });
+    res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to refresh tokens", error: err });
+    res.status(500).json({ success: false, error: "Failed to refresh tokens" });
   }
 };

@@ -34,7 +34,7 @@ const authenticateTokenWithAuth = async (
   try {
     const { accessToken } = req.cookies;
     if (!accessToken) {
-      res.status(401).json({ error: "No access token" });
+      res.status(401).json({ error: "No access token", success: false });
       return;
     }
 
@@ -46,7 +46,9 @@ const authenticateTokenWithAuth = async (
     req.user = decoded;
     return next();
   } catch (error) {
-    res.status(403).json({ message: "Invalid or expired access token", error });
+    res
+      .status(403)
+      .json({ error: "Invalid or expired access token", success: false });
     return;
   }
 };

@@ -8,7 +8,7 @@ const errorHandler = async (err: CustomError, req: Request, res: Response) => {
   console.error(err.stack);
   res
     .status(err.status || 500)
-    .json({ message: err.message || "Internal Server Error", err });
+    .json({ error: err.message || "Internal Server Error", success: false });
 };
 
 export default errorHandler;

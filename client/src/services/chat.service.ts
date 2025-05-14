@@ -12,14 +12,17 @@ import { Dispatch, GetThunkAPI } from "@reduxjs/toolkit";
 export interface ChatRequest {
   context: Message[];
   model: string;
+  conversationId?: number;
 }
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const sendChatMessage = async (request: ChatRequest): Promise<string> => {
+  const { context, model, conversationId } = request;
   try {
-    const response = await axios.post<string>(`${apiUrl}/api/chat`, {
-      context: request.context,
-      model: request.model,
+    const response = await axios.post(`${apiUrl}/api/chat/message`, {
+      context,
+      model,
+      conversationId,
     });
     return response.data;
   } catch (error) {
@@ -113,7 +116,7 @@ export const handleSendMessage = async (
     });
 
     try {
-      await axios.patch(`${apiUrl}/api/chat`, {
+      await axios.patch(`${apiUrl}/api/chat/message`, {
         message: {
           content: botResponse,
           role: "assistant",
