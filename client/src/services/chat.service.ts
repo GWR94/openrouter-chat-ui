@@ -8,22 +8,33 @@ import {
 } from "../features/conversations.slice";
 import { RootState } from "../store";
 import { Dispatch, GetThunkAPI } from "@reduxjs/toolkit";
+import { ConstructionOutlined } from "@mui/icons-material";
 
-export interface ChatRequest {
+interface ApiRequest {
   context: Message[];
   model: string;
   conversationId?: number;
 }
+
+interface MessageRequest {
+  content: string;
+  model: string;
+}
+
 const apiUrl = import.meta.env.VITE_API_URL;
 
-const sendChatMessage = async (request: ChatRequest): Promise<string> => {
-  const { context, model, conversationId } = request;
+const sendChatMessage = async ({
+  context,
+  model,
+  conversationId,
+}: ApiRequest): Promise<string> => {
   try {
     const response = await axios.post(`${apiUrl}/api/chat/message`, {
       context,
       model,
       conversationId,
     });
+    console.log(response.data);
     return response.data;
   } catch (error) {
     console.error("Error in chat service:", error);
@@ -31,51 +42,45 @@ const sendChatMessage = async (request: ChatRequest): Promise<string> => {
   }
 };
 
-export const handleCreateTitle = async (
-  content: string,
-  model: string
-): Promise<string> => {
+const createConversation = async ({ content, model }: MessageRequest) => {
   try {
-    const systemMessage: Message = {
-      id: Date.now(),
-      role: "system",
-      content:
-        "Generate a short, concise title (5-10 words) for this conversation based on the following message. Respond with only the title, no additional text or punctuation.",
-    };
-
-    const userMessage: Message = {
-      id: Date.now() + 1,
-      role: "user",
+    const response = await axios.post(`${apiUrl}/api/chat/conversation`, {
       content,
-    };
-
-    const response = await sendChatMessage({
-      context: [systemMessage, userMessage],
       model,
     });
-
-    return response.trim();
+    console.log(response.data);
+    return response.data;
   } catch (error) {
-    console.error("Error generating title:", error);
-    return content;
+    console.error("Error in chat service:", error);
+    throw error;
   }
 };
 
 export const handleCreateConversation = async (
-  message: string,
-  model: string
-): Promise<Conversation> => {
-  const title = await handleCreateTitle(message, model);
+  { content, model }: MessageRequest,
+  { dispatch }: GetThunkAPI<{ state: RootState }>
+) => {
+  const conversation = await createConversation({ content, model });
+  dispatch(
+    addConversation({
+      title: conversation.title,
+      model,
+      message: conversation.messages[0],
+    })
+  );
+  dispatch(setConversation(conversation.id));
 
-  return {
-    id: Date.now(),
-    title,
-    messages: [],
-  };
+  const botResponse = await sendChatMessage({
+    context: conversation.messages,
+    model,
+    conversationId: conversation.id,
+  });
+
+  dispatch(addMessage({ message: botResponse, role: "assistant" }));
 };
 
 export const handleSendMessage = async (
-  { message, model }: { message: string; model: string },
+  { content, model }: MessageRequest,
   { dispatch, getState }: GetThunkAPI<{ state: RootState; dispatch: Dispatch }>
 ) => {
   const state = getState() as RootState;
@@ -83,7 +88,7 @@ export const handleSendMessage = async (
 
   const newMessage: Message = {
     id: Date.now(),
-    content: message,
+    content,
     role: "user",
   };
 

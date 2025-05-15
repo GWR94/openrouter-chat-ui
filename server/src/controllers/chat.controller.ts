@@ -9,7 +9,6 @@ import {
   Message,
   sendMessage,
 } from "../services/chat.service";
-import { findUser } from "../services/user.service";
 
 export interface ChatRequest {
   model: string;
@@ -28,7 +27,7 @@ export const createMessage = async (req: Request, res: Response) => {
   const { accessToken } = req.cookies;
   const { context, model, conversationId } = req.body;
   const message = context[context.length - 1];
-  const { content, role } = message;
+  const { role } = message;
 
   const { id } = jwt.verify(
     accessToken,
@@ -66,11 +65,17 @@ export const createMessage = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * POST /api/chat/conversation
+ * @param content: string - The content of the message to send to the chat API.
+ * @param model: string - The model to use for the chat completion
+ * @returns conversation - The created conversation with the first message
+ * @throws 500 - If the conversation could not be created.
+ * @throws 401 - If the user is not authenticated.
+ */
 export const createConversation = async (req: Request, res: Response) => {
   const { accessToken } = req.cookies;
-  const { context, model } = req.body;
-  const message = context[context.length - 1];
-  const { content } = message;
+  const { content, model } = req.body;
 
   try {
     const { id } = jwt.verify(
@@ -103,6 +108,14 @@ export const createConversation = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * GET /api/chat/messages/:id
+ * @param id - The ID of the conversation to get messages for.
+ * @returns messages - The messages for the conversation.
+ * @throws 404 - If the conversation is not found.[EOS]
+ * @throws 500 - If the messages could not be fetched.
+ * @throws 401 - If the user is not authenticated.
+ */
 export const getMessages = async (req: Request, res: Response) => {
   const { accessToken } = req.cookies;
   const conversationId = parseInt(req.params.id);
@@ -138,6 +151,14 @@ export const getMessages = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * DELETE /api/chat/message/:id
+ * @param id - The ID of the message to delete.
+ * @returns success - Whether the message was deleted successfully.
+ * @throws 404 - If the message is not found.
+ * @throws 500 - If the message could not be deleted.
+ * @throws 401 - If the user is not authenticated.
+ */
 export const deleteMessage = async (req: Request, res: Response) => {
   const { accessToken } = req.cookies;
   const messageId = parseInt(req.params.id);
@@ -188,6 +209,8 @@ export const deleteMessage = async (req: Request, res: Response) => {
 /**
  * GET /api/chat/conversations
  * @returns conversations - The conversations for the user.
+ * @throws 500 - If the conversations could not be fetched.
+ * @throws 401 - If the user is not authenticated.
  */
 export const getConversations = async (req: Request, res: Response) => {
   const { accessToken } = req.cookies;
@@ -227,6 +250,9 @@ export const getConversations = async (req: Request, res: Response) => {
 /**
  * DELETE /api/chat/conversations/:id
  * @param id - The ID of the conversation to delete.
+ * @returns success - true if the conversation was deleted successfully.
+ * @throws 404 - If the conversation is not found.
+ * @throws 500 - If the conversation could not be deleted.
  */
 export const deleteConversation = async (req: Request, res: Response) => {
   const { accessToken } = req.cookies;
@@ -275,6 +301,13 @@ export const deleteConversation = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * POST /api/chat/prompt
+ * @param prompt - The prompt to create.
+ * @returns success - true if the prompt was created successfully.
+ * @throws 500 - If the prompt could not be created.
+ * @throws 401 - If the user is not authenticated.
+ */
 export const createPrompt = async (req: Request, res: Response) => {
   const { accessToken } = req.cookies;
   const { prompt } = req.body;
@@ -308,6 +341,12 @@ export const createPrompt = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * GET /api/chat/prompts
+ * @returns prompts - The prompts for the user.
+ * @throws 500 - If the prompts could not be fetched.
+ * @throws 401 - If the user is not authenticated.
+ */
 export const getPrompts = async (req: Request, res: Response) => {
   const { accessToken } = req.cookies;
   try {
@@ -340,6 +379,13 @@ export const getPrompts = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * DELETE /api/chat/prompt/:id
+ * @param id - The ID of the prompt to delete.
+ * @returns success - true if the prompt was deleted successfully.
+ * @throws 404 - If the prompt is not found.
+ * @throws 500 - If the prompt could not be deleted.
+ */
 export const deletePrompt = async (req: Request, res: Response) => {
   const { accessToken } = req.cookies;
   const { promptId } = req.params;
@@ -372,6 +418,14 @@ export const deletePrompt = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * PATCH /api/chat/prompt/:id
+ * @param id - The ID of the prompt to update.
+ * @param prompt - The updated prompt data.
+ * @returns success - true if the prompt was updated successfully.
+ * @throws 500 - If the prompt could not be updated.
+ * @throws 401 - If the user is not authenticated.
+ */
 export const updatePrompt = async (req: Request, res: Response) => {
   const { accessToken } = req.cookies;
   const { prompt } = req.body;
