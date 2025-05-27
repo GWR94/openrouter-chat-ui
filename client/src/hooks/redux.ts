@@ -9,8 +9,8 @@ export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 export const useCurrentConversationMessages = () => {
   return useSelector((state: RootState) => {
-    const currentId = state.conversations.currentId;
-    const currentConversation = state.conversations.conversations.find(
+    const currentId = state.chat.currentId;
+    const currentConversation = state.chat.conversations.find(
       (conv) => conv.id === currentId
     );
     return currentConversation ? currentConversation.messages : [];

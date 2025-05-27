@@ -2,7 +2,7 @@ import { sign } from "jsonwebtoken";
 import { User } from "../middleware/authenticateToken";
 
 export const generateTokens = (user: Partial<User>) => {
-  const { id, username, facebookId, googleId, githubId, displayName } = user;
+  const { id, username, facebookId, googleId, githubId } = user;
   const payload: Partial<User> = {
     id,
     username,

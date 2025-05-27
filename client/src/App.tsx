@@ -1,7 +1,7 @@
 import { useState } from "react";
 import ChatBox from "./components/ChatBox";
 import Messages from "./components/Messages";
-import SideBar from "./components/SideBar";
+import SideBar from "./components/sidebar/SideBar";
 import {
   Box,
   createTheme,
@@ -40,7 +40,6 @@ const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: "none",
           borderRadius: 4,
         },
       },

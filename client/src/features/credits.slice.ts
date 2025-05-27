@@ -1,29 +1,29 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { getCredits } from "../services/credits.service";
+import { handleCheckCredits } from "../services/openrouter.service";
 
-export const checkCredits = createAsyncThunk("auth/checkCredits", getCredits);
+export const checkCredits = createAsyncThunk(
+  "openRouter/checkCredits",
+  handleCheckCredits
+);
 
-interface CreditState {
+interface CreditsState {
   total: number;
   used: number;
   isLoading: boolean;
+  error: string | null;
 }
 
-const initialState: CreditState = {
+const initialState: CreditsState = {
   total: 0,
   used: 0,
   isLoading: false,
+  error: null,
 };
 
 const creditsSlice = createSlice({
   name: "credits",
   initialState,
-  reducers: {
-    setCredits(state, action: PayloadAction<{ total: number; used: number }>) {
-      state.total = action.payload.total;
-      state.used = action.payload.used;
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
       .addCase(
@@ -36,6 +36,7 @@ const creditsSlice = createSlice({
           state.total = total_credits;
           state.used = total_usage;
           state.isLoading = false;
+          state.error = null;
         }
       )
       .addCase(checkCredits.pending, (state) => {
@@ -45,9 +46,9 @@ const creditsSlice = createSlice({
         state.total = 0;
         state.used = 0;
         state.isLoading = false;
+        state.error = "Failed to fetch credits";
       });
   },
 });
 
-export const { setCredits } = creditsSlice.actions;
 export default creditsSlice.reducer;

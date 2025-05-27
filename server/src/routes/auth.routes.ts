@@ -3,11 +3,12 @@ import {
   getUser,
   loginUser,
   logoutUser,
+  refreshToken,
   registerUser,
   setOAuthTokensThenRedirect,
+  verifyUser,
 } from "../controllers/auth.controller";
 import passport from "passport";
-import { AuthenticatedRequest } from "../middleware/authenticateToken";
 
 export const router = Router();
 
@@ -15,11 +16,12 @@ router.get("/", getUser);
 router.post("/register", registerUser);
 router.post("/logout", logoutUser);
 router.post("/login", loginUser);
-
+router.get("/verify", verifyUser);
+router.get("/refresh", refreshToken);
 // passport
 router.get(
   "/login/google",
-  passport.authenticate("google", { scope: ["profile"] })
+  passport.authenticate("google", { scope: ["profile", "email"] })
 );
 router.get(
   "/login/google/callback",

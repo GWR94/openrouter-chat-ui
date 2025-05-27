@@ -16,7 +16,7 @@ import prisma from "./prisma.config";
 const findOrCreateUser = async (
   profile: GoogleProfile | FacebookProfile | GitHubProfile
 ) => {
-  const { id, emails, photos, provider, displayName } = profile;
+  const { id, provider, displayName, photos, emails } = profile;
   const email = emails?.[0]?.value ?? null;
 
   try {
@@ -37,7 +37,7 @@ const findOrCreateUser = async (
         where: { id: existingUser.id },
         data: {
           [`${provider}Id`]: id,
-          username: email as string,
+          username: email || `${provider}-${id}`,
           image: photos?.[0]?.value,
           displayName,
         },
@@ -47,7 +47,7 @@ const findOrCreateUser = async (
     return await prisma.user.create({
       data: {
         [`${provider}Id`]: id,
-        username: email as string,
+        username: email || `${provider}-${id}`,
         image: photos?.[0]?.value,
         displayName,
       },
@@ -63,7 +63,8 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-      callbackURL: `/api/user/login/google/callback`,
+      callbackURL: `/api/auth/login/google/callback`,
+      scope: ["email", "profile"],
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -79,10 +80,12 @@ passport.use(
 passport.use(
   new FacebookStrategy(
     {
-      clientID: process.env.FACEBOOK_APP_ID as string,
+      clientID: process.env.FACEBOOK_CLIENT_ID as string,
       clientSecret: process.env.FACEBOOK_APP_SECRET as string,
-      callbackURL: "/api/user/login/facebook/callback",
-      enableProof: true,
+      callbackURL: "/api/auth/login/facebook/callback",
+      // enableProof: true,
+      profileFields: ["id", "emails", "name", "picture"],
+      scope: ["email"],
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -100,7 +103,8 @@ passport.use(
     {
       clientID: process.env.GITHUB_CLIENT_ID as string,
       clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
-      callbackURL: "/api/user/login/github/callback",
+      callbackURL: "/api/auth/login/github/callback",
+      scope: ["user:email"],
     },
     async (accessToken, refreshToken, profile, done) => {
       try {

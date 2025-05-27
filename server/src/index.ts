@@ -6,6 +6,7 @@ import errorHandler from "./middleware/errorHandler";
 import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
 import passport from "./config/passport.config";
+import morgan from "morgan";
 
 // Rate Limiting
 const apiLimiter = rateLimit({
@@ -18,19 +19,19 @@ dotenv.config();
 const app = express();
 const port = 3001;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.FRONT_END_URL,
+    credentials: true, // Important for cookies
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 app.use(apiLimiter);
 
-app.use((req, res, next) => {
-  res.header(
-    "Content-Security-Policy",
-    "default-src 'self'; style-src 'self' 'unsafe-inline'"
-  );
-  next();
-});
-
+app.use(morgan("dev")); // Request logging
 app.use("/api", routes);
 
 app.use(errorHandler);

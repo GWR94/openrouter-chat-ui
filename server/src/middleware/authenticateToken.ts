@@ -2,13 +2,13 @@ import { Response, NextFunction, Request } from "express";
 import jwt from "jsonwebtoken";
 
 export interface AuthenticatedRequest extends Request {
-  user?: User;
+  user: User;
 }
 
 export interface User {
   id: number;
   username: string;
-  hashedPassword?: string;
+  hashedPassword?: string | null;
   facebookId?: string | null;
   googleId?: string | null;
   githubId?: string | null;
@@ -16,7 +16,7 @@ export interface User {
 }
 
 /**
- * Helper function to authenticate without eslint errors
+ * Helper function to authenticate without ts errors
  */
 const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   const authReq = req as AuthenticatedRequest;

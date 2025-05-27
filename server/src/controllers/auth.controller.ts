@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { generateTokens } from "../services/auth.service";
 import prisma from "../config/prisma.config";
-import { findUser } from "../services/user.service";
+import { findUserById, findUserByUsername } from "../services/user.service";
 
 const SALT_ROUNDS = 10;
 const accessTokenConfig: CookieOptions = {
@@ -12,7 +12,9 @@ const accessTokenConfig: CookieOptions = {
   secure: process.env.NODE_ENV === "production", // Only HTTPS in production
   sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
   domain:
-    process.env.NODE_ENV === "production" ? process.env.FRONT_END : "localhost",
+    process.env.NODE_ENV === "production"
+      ? process.env.FRONT_END_URL
+      : "localhost",
   maxAge: 15 * 60 * 1000, // 15 minutes
 };
 const refreshTokenConfig: CookieOptions = {
@@ -20,8 +22,11 @@ const refreshTokenConfig: CookieOptions = {
   secure: process.env.NODE_ENV === "production", // Only HTTPS in production
   sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
   domain:
-    process.env.NODE_ENV === "production" ? process.env.FRONT_END : "localhost",
-  path: "/api/user/refresh",
+    process.env.NODE_ENV === "production"
+      ? process.env.FRONT_END_URL
+      : "localhost",
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  path: "/api/auth/refresh",
 };
 
 /**
@@ -94,26 +99,23 @@ export const registerUser = async (req: Request, res: Response) => {
 export const verifyUser = async (req: Request, res: Response) => {
   try {
     const { accessToken } = req.cookies;
+    console.log(accessToken);
     if (!accessToken) {
-      res.status(401).json({
-        success: false,
-        error: "Unauthorized - No Access Token",
-      });
+      await refreshToken(req, res);
       return;
     }
 
-    const decodedUser = jwt.verify(
+    const { id } = jwt.verify(
       accessToken,
       process.env.ACCESS_TOKEN_SECRET as string
     ) as User;
 
-    const user = await findUser(decodedUser);
+    const user = await findUserById(id);
+
+    console.log({ user });
 
     if (!user) {
-      res.status(401).json({
-        success: false,
-        message: "Unauthorized - User not found",
-      });
+      await refreshToken(req, res);
       return;
     }
 
@@ -124,10 +126,8 @@ export const verifyUser = async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      success: false,
-      error: "Failed to verify user",
-    });
+    await refreshToken(req, res);
+    return;
   }
 };
 
@@ -142,7 +142,7 @@ export const verifyUser = async (req: Request, res: Response) => {
 export const getUser = async (req: Request, res: Response) => {
   const { username } = req.params;
   try {
-    const user = await findUser({ username });
+    const user = await findUserByUsername(username);
     console.log(user);
     res.json({
       success: true,
@@ -170,7 +170,7 @@ export const getUser = async (req: Request, res: Response) => {
 export const loginUser = async (req: Request, res: Response) => {
   const { username, password, rememberMe = false } = req.body;
   try {
-    const user = await findUser({ username });
+    const user = await findUserByUsername(username);
     if (!user) {
       res.status(404).json({ message: "User not found" });
       return;
@@ -244,7 +244,7 @@ export const setOAuthTokensThenRedirect = (req: Request, res: Response) => {
 
     res.cookie("accessToken", accessToken, accessTokenConfig);
     res.cookie("refreshToken", refreshToken, refreshTokenConfig);
-    res.redirect(process.env.FRONT_END as string);
+    res.redirect(process.env.FRONT_END_URL as string);
     return;
   } catch (err) {
     console.log(err);
@@ -270,13 +270,13 @@ export const refreshToken = async (req: Request, res: Response) => {
       .json({ error: "Unauthorized - No Refresh Token", success: false });
     return;
   }
-  const decoded = jwt.verify(
+  const { id } = jwt.verify(
     refreshToken,
     process.env.REFRESH_TOKEN_SECRET as string
   ) as User;
 
   try {
-    const user = await findUser(decoded);
+    const user = await findUserById(id);
 
     if (!user) {
       res
@@ -288,7 +288,12 @@ export const refreshToken = async (req: Request, res: Response) => {
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
     res.cookie("accessToken", accessToken, accessTokenConfig);
     res.cookie("refreshToken", newRefreshToken, refreshTokenConfig);
-    res.json({ success: true });
+    const { hashedPassword, ...safeUser } = user;
+    res.status(200).json({
+      success: true,
+      data: safeUser,
+    });
+    return;
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: "Failed to refresh tokens" });

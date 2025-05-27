@@ -3,7 +3,11 @@ import {
   useAppDispatch as useDispatch,
   useAppSelector as useSelector,
 } from "../hooks/redux";
-import { sendMessage } from "../features/conversations.slice";
+import {
+  createConversation,
+  getChatResponse,
+  Message,
+} from "../features/chat.slice";
 import { RootState } from "../store";
 import {
   Box,
@@ -15,22 +19,28 @@ import {
   useTheme,
   Paper,
   Divider,
+  Typography,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { models, freeModels, FreeModel, PaidModel } from "../../data/models";
+import { FreeModel, PaidModel } from "../../data/models";
+import { setModel } from "../features/models.slice";
+import { PromptManager } from "./prompt/PromptManager";
 
 const ChatBox: React.FC = () => {
   type Model = FreeModel | PaidModel;
   const theme = useTheme();
   const [input, setInput] = useState<string>("");
-  const [currentModel, setCurrentModel] = useState<Model>(freeModels[0]);
+
   const [modelMenuAnchor, setModelMenuAnchor] = useState<null | HTMLElement>(
     null
   );
+  const { items: models, current } = useSelector((state) => state.models);
   const dispatch = useDispatch();
 
-  const { isLoading } = useSelector((state: RootState) => state.conversations);
+  const { isLoading, currentId } = useSelector(
+    (state: RootState) => state.chat
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -44,8 +54,7 @@ const ChatBox: React.FC = () => {
   };
 
   const handleModelChange = (model: Model) => {
-    console.log(model);
-    setCurrentModel(model);
+    dispatch(setModel(model));
     setModelMenuAnchor(null);
   };
 
@@ -53,17 +62,29 @@ const ChatBox: React.FC = () => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const message = input.trim();
+    const message: Message = {
+      content: input.trim(),
+      role: "user",
+    };
     setInput("");
 
-    // Dispatch the sendMessage thunk action
+    if (!currentId) {
+      dispatch(
+        createConversation({
+          content: message.content,
+          model: current.model,
+        })
+      );
+      return;
+    }
+
     try {
       dispatch(
-        sendMessage({
+        getChatResponse({
           message,
-          model: currentModel.model,
+          model: current.model,
         })
-      ).unwrap();
+      );
     } catch (err) {
       console.error("Failed to send message:", err);
     }
@@ -75,16 +96,24 @@ const ChatBox: React.FC = () => {
       onSubmit={handleSubmit}
       sx={{ width: "100%", p: 2, maxWidth: 768, mx: "auto", height: "140px" }}
     >
-      <Box
-        sx={{
-          textAlign: "center",
-          color: "text.secondary",
-          fontSize: 12,
-          mb: 1,
-        }}
-      >
-        Model: {currentModel?.name}
-      </Box>
+      <Tooltip title="Select model">
+        <Box
+          onClick={openModelMenu}
+          sx={{
+            textAlign: "center",
+            color: "text.secondary",
+            fontSize: 12,
+            mb: 1,
+            alignItems: "center",
+            display: "flex",
+            justifyContent: "center",
+            cursor: "pointer",
+          }}
+        >
+          Model: {current.name} ({current.cost})
+          <ExpandMoreIcon sx={{ ml: 1 }} />
+        </Box>
+      </Tooltip>
       <Paper
         sx={{
           position: "relative",
@@ -107,11 +136,7 @@ const ChatBox: React.FC = () => {
           onKeyDown={handleKeyDown}
         />
 
-        <Tooltip title="Select model">
-          <IconButton size="small" onClick={openModelMenu} sx={{ mr: 1 }}>
-            <ExpandMoreIcon />
-          </IconButton>
-        </Tooltip>
+        <PromptManager />
 
         <Tooltip title="Send message">
           <IconButton
@@ -124,7 +149,8 @@ const ChatBox: React.FC = () => {
           </IconButton>
         </Tooltip>
       </Paper>
-      {currentModel.cost === "Free" && (
+
+      {current.cost === "Free" && (
         <Box
           sx={{
             textAlign: "center",
@@ -136,7 +162,7 @@ const ChatBox: React.FC = () => {
           Warning - Free models will take longer and can possibly fail.
         </Box>
       )}
-      {(currentModel.cost === "$$$$" || currentModel.cost === "$$$") && (
+      {(current.cost === "$$$$" || current.cost === "$$$") && (
         <Box
           sx={{
             mt: 1,
@@ -145,7 +171,8 @@ const ChatBox: React.FC = () => {
             fontSize: 12,
           }}
         >
-          Warning - This model is {currentModel.cost === "$$$$" ? "very " : " "}
+          Warning - This model is{" "}
+          {current.cost === "$$$$" ? "very " : "reasonably "}
           expensive.
         </Box>
       )}
@@ -156,36 +183,38 @@ const ChatBox: React.FC = () => {
         onClose={() => setModelMenuAnchor(null)}
       >
         <MenuItem disabled>Free Models</MenuItem>
-        {freeModels.map((modelOption) => (
-          <MenuItem
-            key={modelOption.model}
-            selected={modelOption.model === currentModel.model}
-            onClick={() => handleModelChange(modelOption)}
-          >
-            {modelOption.name}
-          </MenuItem>
-        ))}
+        {models
+          .filter((model) => model.cost === "Free")
+          .map((m: Model) => (
+            <MenuItem
+              key={m.model}
+              selected={m.model === m.model}
+              onClick={() => handleModelChange(m)}
+            >
+              {m.name}
+            </MenuItem>
+          ))}
         <Divider />
         <MenuItem disabled>
           <Box>Paid Models</Box>
         </MenuItem>
-        {models
+        {(models.filter((model: Model) => model.cost !== "Free") as PaidModel[])
           .sort((a: PaidModel, b: PaidModel) =>
             a.average > b.average ? -1 : 1
           )
-          .map((modelOption) => (
+          .map((m) => (
             <MenuItem
-              key={modelOption.model}
-              selected={modelOption.model === currentModel.model}
-              onClick={() => handleModelChange(modelOption)}
+              key={m.model}
+              selected={m.model === current.model}
+              onClick={() => handleModelChange(m)}
               sx={{
                 display: "flex",
                 w: "100%",
                 justifyContent: "space-between",
               }}
             >
-              <Box>{modelOption.name}</Box>
-              <Box sx={{ ml: 1 }}>({modelOption.cost})</Box>
+              <Box>{m.name}</Box>
+              <Box sx={{ ml: 1 }}>({m.cost})</Box>
             </MenuItem>
           ))}
       </Menu>

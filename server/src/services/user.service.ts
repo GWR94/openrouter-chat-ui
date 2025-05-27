@@ -1,24 +1,34 @@
 import prisma from "../config/prisma.config";
-import { User } from "../middleware/authenticateToken";
 
 /**
- * Helper function to find a user by username or OAuth ID
- * @param user - Partial of user object of the user to find
+ * Helper function to find a user by its id
+ * @param id - The id of the user to find
  * @returns The user object if found, otherwise null
  * @throws Error if there is an error during the process or
  * if the user is not found.
  */
-export const findUser = async (user: Partial<User>) => {
+export const findUserById = async (id: number) => {
   try {
-    return await prisma.user.findFirst({
-      where: {
-        OR: [
-          { username: user?.username },
-          { googleId: user?.googleId },
-          { facebookId: user?.facebookId },
-          { githubId: user?.githubId },
-        ],
-      },
+    return await prisma.user.findUnique({
+      where: { id },
+    });
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+};
+
+/**
+ * Helper function to find a user by its username
+ * @param username - The username of the user to find
+ * @returns The user object if found, otherwise null
+ * @throws Error if there is an error during the process or
+ * if the user is not found.
+ */
+export const findUserByUsername = async (username: string) => {
+  try {
+    return await prisma.user.findUnique({
+      where: { username },
     });
   } catch (err) {
     console.error(err);

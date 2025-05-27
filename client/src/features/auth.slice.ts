@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { logout, login, register } from "../services/auth.service";
+import { logout, login, register, checkAuth } from "../services/auth.service";
 
 export interface User {
   id: string;
@@ -21,6 +21,7 @@ const initialState: AuthState = {
 export const loginUser = createAsyncThunk("auth/login", login);
 export const logoutUser = createAsyncThunk("auth/logout", logout);
 export const registerUser = createAsyncThunk("auth/register", register);
+export const checkAuthStatus = createAsyncThunk("auth/checkStatus", checkAuth);
 
 const authSlice = createSlice({
   name: "auth",
@@ -71,6 +72,21 @@ const authSlice = createSlice({
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = (action.payload as string) || "Failed to register";
+      })
+      .addCase(checkAuthStatus.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(checkAuthStatus.fulfilled, (state, action) => {
+        console.log(action.payload);
+        state.isLoading = false;
+        state.user = action.payload;
+        state.error = null;
+      })
+      .addCase(checkAuthStatus.rejected, (state, action) => {
+        state.isLoading = false;
+        state.user = null;
+        state.error = action.error.message || "Failed to check auth status";
       });
   },
 });

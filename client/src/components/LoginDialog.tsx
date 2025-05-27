@@ -3,12 +3,12 @@ import {
   DialogTitle,
   DialogContent,
   Button,
-  Box, // Import Box for spacing and layout
-  Typography, // Import Typography for text styling
+  Box,
+  Typography,
   useTheme,
   TextField,
   DialogActions,
-  IconButton, // Import useTheme for theme access
+  IconButton,
 } from "@mui/material";
 import React, { useState } from "react";
 import { loginUser } from "../features/auth.slice";
@@ -18,6 +18,7 @@ import {
 } from "../hooks/redux";
 import { Facebook, GitHub, Google } from "@mui/icons-material";
 import { RootState } from "../store";
+import { loginOAuthUser } from "../services/auth.service";
 
 type LoginDialogProps = {
   isOpen: boolean;
@@ -29,7 +30,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, setOpen }) => {
     username: "",
     password: "",
   });
-  const { isLoading, error } = useSelector((state: RootState) => state.auth);
+  const { isLoading } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
   const theme = useTheme();
 
@@ -79,19 +80,19 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, setOpen }) => {
             >
               <IconButton
                 sx={{ color: theme.palette.secondary.main }}
-                onClick={() => console.log("TODO")}
+                onClick={() => loginOAuthUser("google")}
               >
                 <Google />
               </IconButton>
               <IconButton
                 sx={{ color: theme.palette.secondary.main }}
-                onClick={() => console.log("TODO")}
+                onClick={() => loginOAuthUser("facebook")}
               >
                 <Facebook />
               </IconButton>
               <IconButton
                 sx={{ color: theme.palette.secondary.main }}
-                onClick={() => console.log("TODO")}
+                onClick={() => loginOAuthUser("github")}
               >
                 <GitHub />
               </IconButton>
@@ -104,6 +105,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, setOpen }) => {
             <Button
               variant="contained"
               color="primary"
+              loading={isLoading}
               onClick={() => dispatch(loginUser(credentials))}
             >
               Login

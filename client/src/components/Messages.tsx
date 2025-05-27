@@ -7,14 +7,13 @@ import LoadingMessage from "./LoadingMessage";
 const Messages: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const messages = useSelector(
-    (state) =>
-      state.conversations.conversations.find(
-        (conv) => conv.id === state.conversations.currentId
-      )?.messages || []
+  const { isLoading, conversations, currentId } = useSelector(
+    (state) => state.chat
   );
-
-  const { isLoading } = useSelector((state) => state.conversations);
+  const messages = React.useMemo(
+    () => conversations.find((conv) => conv.id === currentId)?.messages || [],
+    [conversations, currentId]
+  );
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {

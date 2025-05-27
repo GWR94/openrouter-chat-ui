@@ -1,7 +1,8 @@
 import { Router } from "express";
 import chatRoutes from "./chat.routes";
 import authRoutes from "./auth.routes";
-import creditRoutes from "./credits.routes";
+import openrouterRoutes from "./openrouter.routes";
+import authenticateToken from "../middleware/authenticateToken";
 
 const router = Router();
 
@@ -11,8 +12,8 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-router.use("/chat", chatRoutes);
+router.use("/chat", authenticateToken, chatRoutes);
 router.use("/auth", authRoutes);
-router.use("/credits", creditRoutes);
+router.use("/openrouter", openrouterRoutes);
 
 export default router;
